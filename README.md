@@ -1,36 +1,32 @@
 # GloSdk
 
-SDK Android/Kotlin indipendente per comunicare via BLE con dispositivi glo di proprietà
-dell'utente. Il progetto non dipende da Glow, Compose o dai suoi ViewModel.
+Independent Android/Kotlin SDK to communicate via BLE with user-owned glo devices.
+The project does not depend on Glow, Compose, or their ViewModels.
 
-La prima implementazione interoperabile è mirata al modello **Boreas / glo Hyper Pro+**.
-UUID, pacchetti e comandi stabili derivano dall'analisi statica dello SDK Android e da una
-cattura HCI sul dispositivo fisico. Le funzioni non catturate sono separate e marcate
-`@ExperimentalGloApi`.
+The first interoperable implementation targets the **Boreas / glo Hyper Pro+** model.
+Stable UUIDs, packets, and commands are derived from static analysis of the Android SDK and an HCI capture on the physical device. Uncaptured functions are separated and marked `@ExperimentalGloApi`.
 
-## Moduli
+## Modules
 
-- `glo-api`: JAR Kotlin/JVM con API pubbliche, modelli, UUID, comandi, codec e astrazione
-  del trasporto. Non importa classi `android.*`.
-- `glo-ble-android`: AAR con scanner BLE Android, bonding, connessione GATT, negoziazione
-  MTU, service discovery, coda seriale delle operazioni, CCCD e client di alto livello.
+- `glo-api`: Kotlin/JVM JAR with public APIs, models, UUIDs, commands, codecs, and transport abstraction. Does not import `android.*` classes.
+- `glo-ble-android`: AAR with Android BLE scanner, bonding, GATT connection, MTU negotiation, service discovery, serial operation queue, CCCD, and high-level client.
 
-Coordinate:
+Coordinates:
 
 ```text
 com.anto426.glo:glo-api:0.1.0-SNAPSHOT
 com.anto426.glo:glo-ble-android:0.1.0-SNAPSHOT
 ```
 
-## Importazione durante lo sviluppo
+## Importing during development
 
-Nel `settings.gradle.kts` dell'app:
+In the app's `settings.gradle.kts`:
 
 ```kotlin
 includeBuild("../GloSdk")
 ```
 
-Nel modulo Android dell'app:
+In the app's Android module:
 
 ```kotlin
 dependencies {
@@ -38,20 +34,18 @@ dependencies {
 }
 ```
 
-Gradle sostituisce automaticamente le coordinate con i moduli del progetto separato.
-In alternativa:
+Gradle automatically replaces coordinates with the modules of the separate project.
+Alternatively:
 
 ```powershell
 .\gradlew.bat publishToMavenLocal
 ```
 
-e l'app può risolvere le stesse coordinate da `mavenLocal()`.
+and the app can resolve the same coordinates from `mavenLocal()`.
 
-## Uso minimo
+## Minimal usage
 
-L'host deve richiedere a runtime le autorizzazioni restituite da
-`AndroidBlePermissions.requiredRuntimePermissions()`; lo SDK non mostra UI e non richiede
-permessi autonomamente.
+The host must request at runtime the permissions returned by `AndroidBlePermissions.requiredRuntimePermissions()`; the SDK does not display a UI and does not request permissions autonomously.
 
 ```kotlin
 val manager = AndroidGloSdk.create(applicationContext)
@@ -74,7 +68,7 @@ when (val connected = manager.connect(deviceId)) {
 }
 ```
 
-Lo stato reattivo è disponibile tramite `StateFlow`:
+Reactive state is available via `StateFlow`:
 
 - `GloDeviceManager.scanState`
 - `GloDeviceManager.discoveredDevices`
@@ -84,37 +78,31 @@ Lo stato reattivo è disponibile tramite `StateFlow`:
 - `GloDeviceSession.snapshot`
 - `GloDeviceSession.events`
 
-## Inizializzazione della sessione
+## Session Initialization
 
-Il client Android esegue in ordine:
+The Android client executes in order:
 
-1. connessione LE;
-2. creazione o riuso del bond;
-3. richiesta MTU 517 e memorizzazione del valore negoziato;
-4. service discovery per UUID;
-5. scrittura `01 00` nei CCCD delle characteristic di stato;
-6. lettura e sincronizzazione dell'ora `uint32` big-endian;
-7. lettura iniziale di device info, batteria, lock, session status, FindGlo, LED e profilo.
+1. LE connection;
+2. creation or reuse of the bond;
+3. MTU 517 request and storage of the negotiated value;
+4. service discovery for UUIDs;
+5. write `01 00` to the CCCDs of the status characteristics;
+6. read and synchronization of the big-endian `uint32` time;
+7. initial read of device info, battery, lock, session status, FindGlo, LED, and profile.
 
-Ogni operazione GATT è serializzata. Per i comandi confermati da notification, il listener
-viene registrato prima della write, poi vengono attesi sia il write acknowledgement sia la
-notification semantica.
+Every GATT operation is serialized. For commands confirmed by notifications, the listener is registered before the write, and then both the write acknowledgement and the semantic notification are awaited.
 
-## Sicurezza e limiti
+## Security and Limitations
 
-- I comandi ordinari usano il bonding e la cifratura link-layer BLE; nelle catture non sono
-  comparsi nonce, token, MAC o cifratura applicativa aggiuntiva.
-- Le catture HCI e le chiavi di bonding non sono incluse in questo repository.
-- Reset, upload Payload/Greetings, age verification e OTA non fanno parte del percorso
-  stabile: mancano ancora catture dinamiche complete.
-- Gli handle GATT osservati non sono codificati: servizi e characteristic vengono sempre
-  risolti tramite UUID.
-- La lista dei dispositivi associati espone solo nomi riconosciuti come Boreas / Hyper Pro+;
-  gli altri bond Bluetooth vengono esclusi e i profili non verificati non sono collegabili.
+- Ordinary commands use bonding and BLE link-layer encryption; no nonce, token, MAC, or additional application-layer encryption appeared in the captures.
+- HCI captures and bonding keys are not included in this repository.
+- Reset, Payload/Greetings upload, age verification, and OTA are not part of the stable path: complete dynamic captures are still missing.
+- Observed GATT handles are not hardcoded: services and characteristics are always resolved via UUIDs.
+- The list of paired devices only exposes names recognized as Boreas / Hyper Pro+; other Bluetooth bonds are excluded and unverified profiles cannot be connected.
 
-Dettagli: [docs/PROTOCOL_SUPPORT.md](docs/PROTOCOL_SUPPORT.md).
+Details: [docs/PROTOCOL_SUPPORT.md](docs/PROTOCOL_SUPPORT.md).
 
-## Verifica
+## Verification
 
 ```powershell
 .\gradlew.bat :glo-api:test :glo-ble-android:testDebugUnitTest :glo-ble-android:assembleRelease
